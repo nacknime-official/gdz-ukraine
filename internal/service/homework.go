@@ -15,7 +15,7 @@ func (hs *mockHomeworkService) GetAuthors(opts entity.Opts) ([]*entity.Author, e
 	return []*entity.Author{{"1"}, {"2"}, {"3"}}, nil
 }
 func (hs *mockHomeworkService) GetSpecifications(opts entity.Opts) ([]*entity.Specification, error) {
-	return nil, nil
+	return []*entity.Specification{{"Handbook"}, {"Notebook"}}, nil
 }
 func (hs *mockHomeworkService) GetYear(opts entity.Opts) ([]*entity.Year, error) {
 	return nil, nil
