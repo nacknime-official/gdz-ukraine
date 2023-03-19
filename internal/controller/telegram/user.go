@@ -74,7 +74,7 @@ func (h *userHandler) OnStart(c telebot.Context, state fsm.Context) error {
 }
 
 func (h *userHandler) OnInputGrade(c telebot.Context, state fsm.Context) error {
-	log.Println("Grade: ", c.Message().Text)
+	log.Println("Grade:", c.Message().Text)
 
 	grade, err := strconv.Atoi(c.Message().Text)
 	if err != nil {
@@ -107,7 +107,7 @@ func (h *userHandler) OnInputGrade(c telebot.Context, state fsm.Context) error {
 }
 
 func (h *userHandler) OnInputSubject(c telebot.Context, state fsm.Context) error {
-	log.Println("Subject: ", c.Message().Text)
+	log.Println("Subject:", c.Message().Text)
 
 	// TODO: input should be valid
 	subject := &entity.Subject{Name: c.Message().Text}
@@ -145,7 +145,7 @@ func (h *userHandler) OnInputSubject(c telebot.Context, state fsm.Context) error
 }
 
 func (h *userHandler) OnInputAuthor(c telebot.Context, state fsm.Context) error {
-	log.Println("Author: ", c.Message().Text)
+	log.Println("Author:", c.Message().Text)
 
 	// TODO: input should be valid
 	author := &entity.Author{Name: c.Message().Text}
@@ -189,7 +189,7 @@ func (h *userHandler) OnInputAuthor(c telebot.Context, state fsm.Context) error 
 }
 
 func (h *userHandler) OnInputSpecification(c telebot.Context, state fsm.Context) error {
-	log.Println("Specification: ", c.Message().Text)
+	log.Println("Specification:", c.Message().Text)
 
 	// TODO: input should be valid
 	// specification := &entity.Specification{Name: c.Message().Text}
@@ -204,7 +204,7 @@ func (h *userHandler) OnInputSpecification(c telebot.Context, state fsm.Context)
 		return err
 	}
 
-	log.Println("data: ", grade, subjectName, authorName)
+	log.Println("data:", grade, subjectName, authorName)
 
 	return nil
 }
