@@ -16,6 +16,7 @@ var (
 	InputSubject       = InputSG.New("subject")
 	InputAuthor        = InputSG.New("author")
 	InputSpecification = InputSG.New("spec")
+	InputYear          = InputSG.New("year")
 )
 
 type HomeworkService interface {
@@ -41,6 +42,7 @@ func (h *userHandler) Register(manager *fsm.Manager) {
 	manager.Bind(telebot.OnText, InputSubject, h.OnInputSubject)
 	manager.Bind(telebot.OnText, InputAuthor, h.OnInputAuthor)
 	manager.Bind(telebot.OnText, InputSpecification, h.OnInputSpecification)
+	manager.Bind(telebot.OnText, InputYear, h.OnInputYear)
 }
 
 func (h *userHandler) OnStart(c telebot.Context, state fsm.Context) error {
@@ -192,7 +194,7 @@ func (h *userHandler) OnInputSpecification(c telebot.Context, state fsm.Context)
 	log.Println("Specification:", c.Message().Text)
 
 	// TODO: input should be valid
-	// specification := &entity.Specification{Name: c.Message().Text}
+	specification := &entity.Specification{Name: c.Message().Text}
 
 	var (
 		grade       int
@@ -204,7 +206,57 @@ func (h *userHandler) OnInputSpecification(c telebot.Context, state fsm.Context)
 		return err
 	}
 
-	log.Println("data:", grade, subjectName, authorName)
+	years, err := h.homeworkService.GetYear(entity.Opts{
+		Grade:         grade,
+		Subject:       &entity.Subject{Name: subjectName},
+		Author:        &entity.Author{Name: authorName},
+		Specification: specification,
+	})
+	if err != nil {
+		// TODO: handle
+		return err
+	}
+
+	m := &telebot.ReplyMarkup{ResizeKeyboard: true}
+	var btns []telebot.Btn
+	for _, year := range years {
+		btns = append(btns, telebot.Btn{Text: strconv.Itoa(year.Year)})
+	}
+	m.Reply(m.Split(4, btns)...)
+
+	if err := state.Update(InputSpecification.String(), specification.Name); err != nil {
+		// TODO: handle
+		return err
+	}
+	if err := state.Set(InputYear); err != nil {
+		// TODO: handle
+		return err
+	}
+	return c.Send("Choose the year", m)
+}
+
+func (h *userHandler) OnInputYear(c telebot.Context, state fsm.Context) error {
+	log.Println("Year:", c.Message().Text)
+
+	// TODO: input should be valid
+	rawYear, err := strconv.Atoi(c.Message().Text)
+	if err != nil {
+		return c.Send("You've put not a number, try again")
+	}
+	year := &entity.Year{Year: rawYear}
+
+	var (
+		grade             int
+		subjectName       string
+		authorName        string
+		specificationName string
+	)
+	if err := getData(&getDataOpts{grade: &grade, subjectName: &subjectName, authorName: &authorName, specificationName: &specificationName}, state); err != nil {
+		// TODO: handle
+		return err
+	}
+	log.Println("data:", grade, subjectName, authorName, specificationName)
+	_ = year
 
 	return nil
 }
@@ -212,9 +264,10 @@ func (h *userHandler) OnInputSpecification(c telebot.Context, state fsm.Context)
 // TODO: better name
 // TODO: move to other place
 type getDataOpts struct {
-	grade       *int
-	subjectName *string
-	authorName  *string
+	grade             *int
+	subjectName       *string
+	authorName        *string
+	specificationName *string
 }
 
 // TODO: better name
@@ -235,6 +288,11 @@ func getData(opts *getDataOpts, state fsm.Context) error {
 	if opts.authorName != nil {
 		if err := state.Get(InputAuthor.String(), opts.authorName); err != nil {
 			return fmt.Errorf("get author name: %w", err)
+		}
+	}
+	if opts.specificationName != nil {
+		if err := state.Get(InputSpecification.String(), opts.specificationName); err != nil {
+			return fmt.Errorf("get specification name: %w", err)
 		}
 	}
 	return nil

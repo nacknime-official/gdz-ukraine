@@ -18,7 +18,7 @@ func (hs *mockHomeworkService) GetSpecifications(opts entity.Opts) ([]*entity.Sp
 	return []*entity.Specification{{"Handbook"}, {"Notebook"}}, nil
 }
 func (hs *mockHomeworkService) GetYear(opts entity.Opts) ([]*entity.Year, error) {
-	return nil, nil
+	return []*entity.Year{{2012}, {2015}, {2017}, {2022}}, nil
 }
 func (hs *mockHomeworkService) GetTopics(opts entity.Opts) ([]*entity.Topic, error) {
 	return nil, nil
