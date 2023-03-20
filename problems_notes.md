@@ -29,3 +29,8 @@ func (h *userHandler) OnInputAuthor(c telebot.Context, state fsm.Context) error 
     }
 }
 ```
+
+### 2. Make the code in handlers clearer
+I think about a kind of setting object or a runtime config that maps a state to all the info for "back" button (get the previous handler and message), checking input (callback for getting the data again and check the input with the data) etc.
+
+Like something similar to aiogram-dialogs maybe.

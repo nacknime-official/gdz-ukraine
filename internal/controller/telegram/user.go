@@ -7,6 +7,7 @@ import (
 
 	"github.com/nacknime-official/gdz-ukraine/internal/entity"
 	"github.com/vitaliy-ukiru/fsm-telebot"
+	"golang.org/x/exp/slices"
 	"gopkg.in/telebot.v3"
 )
 
@@ -111,13 +112,23 @@ func (h *userHandler) OnInputGrade(c telebot.Context, state fsm.Context) error {
 func (h *userHandler) OnInputSubject(c telebot.Context, state fsm.Context) error {
 	log.Println("Subject:", c.Message().Text)
 
-	// TODO: input should be valid
-	subject := &entity.Subject{Name: c.Message().Text}
-
 	var grade int
 	if err := getData(&getDataOpts{grade: &grade}, state); err != nil {
 		// TODO: handle
 		return err
+	}
+
+	// check the input
+	// TODO: refactor (check note 2 in "problems_notes.md")
+	subject := &entity.Subject{Name: c.Message().Text}
+	subjects, err := h.homeworkService.GetSubjects(entity.Opts{Grade: grade})
+	if err != nil {
+		// TODO: handle
+		return err
+
+	}
+	if !slices.ContainsFunc(subjects, func(s *entity.Subject) bool { return s.Name == subject.Name }) {
+		return c.Send("Click on one of the buttons!")
 	}
 
 	authors, err := h.homeworkService.GetAuthors(entity.Opts{Grade: grade, Subject: subject})
