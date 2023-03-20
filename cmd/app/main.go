@@ -33,6 +33,5 @@ func main() {
 
 	go bot.Start()
 	log.Println("Bot started")
-	for {
-	}
+	select {}
 }
