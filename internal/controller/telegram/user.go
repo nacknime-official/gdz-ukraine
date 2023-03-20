@@ -23,7 +23,7 @@ type HomeworkService interface {
 	GetSubjects(opts entity.Opts) ([]*entity.Subject, error)
 	GetAuthors(opts entity.Opts) ([]*entity.Author, error)
 	GetSpecifications(opts entity.Opts) ([]*entity.Specification, error)
-	GetYear(opts entity.Opts) ([]*entity.Year, error)
+	GetYears(opts entity.Opts) ([]*entity.Year, error)
 	GetTopics(opts entity.Opts) ([]*entity.Topic, error)
 	GetExercises(opts entity.Opts) ([]*entity.Exercise, error)
 }
@@ -206,7 +206,7 @@ func (h *userHandler) OnInputSpecification(c telebot.Context, state fsm.Context)
 		return err
 	}
 
-	years, err := h.homeworkService.GetYear(entity.Opts{
+	years, err := h.homeworkService.GetYears(entity.Opts{
 		Grade:         grade,
 		Subject:       &entity.Subject{Name: subjectName},
 		Author:        &entity.Author{Name: authorName},
