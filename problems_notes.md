@@ -36,7 +36,7 @@ I think about a kind of setting object or a runtime config that maps a state to 
 Like something similar to aiogram-dialogs maybe.
 
 ### 3. Save IDs of the entities and pass the ID to the Homework gateway
-The problem is that the bot doesn't use an inline keyboard, it uses a reply keyboard which don't have *callback data* with which I could link the item to its ID.
+The problem is that the bot doesn't use an inline keyboard, it uses a reply keyboard which doesn't have *callback data* with which I could link the item to its ID.
 
 The bot can't use an inline keyboard because of the huge amount of the buttons and it looks bad with buttons' long texts.
 
