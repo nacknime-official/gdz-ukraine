@@ -120,16 +120,17 @@ func (h *userHandler) OnInputSubject(c telebot.Context, state fsm.Context) error
 
 	// check the input
 	// TODO: refactor (check note 2 in "problems_notes.md")
-	subject := &entity.Subject{Name: c.Message().Text}
 	subjects, err := h.homeworkService.GetSubjects(entity.Opts{Grade: grade})
 	if err != nil {
 		// TODO: handle
 		return err
 
 	}
-	if !slices.ContainsFunc(subjects, func(s *entity.Subject) bool { return s.Name == subject.Name }) {
+	idx := slices.IndexFunc(subjects, func(s *entity.Subject) bool { return s.Name == c.Message().Text })
+	if idx < 0 {
 		return c.Send("Click on one of the buttons!")
 	}
+	subject := subjects[idx]
 
 	authors, err := h.homeworkService.GetAuthors(entity.Opts{Grade: grade, Subject: subject})
 	if err != nil {
@@ -146,7 +147,7 @@ func (h *userHandler) OnInputSubject(c telebot.Context, state fsm.Context) error
 	}
 	m.Reply(m.Split(4, btns)...)
 
-	if err := state.Update(InputSubject.String(), subject.Name); err != nil {
+	if err := state.Update(InputSubject.String(), subject); err != nil {
 		// TODO: handle
 		return err
 	}
@@ -164,17 +165,17 @@ func (h *userHandler) OnInputAuthor(c telebot.Context, state fsm.Context) error 
 	author := &entity.Author{Name: c.Message().Text}
 
 	var (
-		grade       int
-		subjectName string
+		grade   int
+		subject entity.Subject
 	)
-	if err := getData(&getDataOpts{grade: &grade, subjectName: &subjectName}, state); err != nil {
+	if err := getData(&getDataOpts{grade: &grade, subject: &subject}, state); err != nil {
 		// TODO: handle
 		return err
 	}
 
 	specifications, err := h.homeworkService.GetSpecifications(entity.Opts{
 		Grade:   grade,
-		Subject: &entity.Subject{Name: subjectName},
+		Subject: &subject,
 		Author:  author,
 	})
 	if err != nil {
@@ -208,18 +209,18 @@ func (h *userHandler) OnInputSpecification(c telebot.Context, state fsm.Context)
 	specification := &entity.Specification{Name: c.Message().Text}
 
 	var (
-		grade       int
-		subjectName string
-		authorName  string
+		grade      int
+		subject    entity.Subject
+		authorName string
 	)
-	if err := getData(&getDataOpts{grade: &grade, subjectName: &subjectName, authorName: &authorName}, state); err != nil {
+	if err := getData(&getDataOpts{grade: &grade, subject: &subject, authorName: &authorName}, state); err != nil {
 		// TODO: handle
 		return err
 	}
 
 	years, err := h.homeworkService.GetYears(entity.Opts{
 		Grade:         grade,
-		Subject:       &entity.Subject{Name: subjectName},
+		Subject:       &subject,
 		Author:        &entity.Author{Name: authorName},
 		Specification: specification,
 	})
@@ -258,15 +259,15 @@ func (h *userHandler) OnInputYear(c telebot.Context, state fsm.Context) error {
 
 	var (
 		grade             int
-		subjectName       string
+		subject           entity.Subject
 		authorName        string
 		specificationName string
 	)
-	if err := getData(&getDataOpts{grade: &grade, subjectName: &subjectName, authorName: &authorName, specificationName: &specificationName}, state); err != nil {
+	if err := getData(&getDataOpts{grade: &grade, subject: &subject, authorName: &authorName, specificationName: &specificationName}, state); err != nil {
 		// TODO: handle
 		return err
 	}
-	log.Println("data:", grade, subjectName, authorName, specificationName)
+	log.Println("data:", grade, subject, authorName, specificationName)
 	_ = year
 
 	return nil
@@ -276,7 +277,7 @@ func (h *userHandler) OnInputYear(c telebot.Context, state fsm.Context) error {
 // TODO: move to other place
 type getDataOpts struct {
 	grade             *int
-	subjectName       *string
+	subject           *entity.Subject
 	authorName        *string
 	specificationName *string
 }
@@ -291,9 +292,9 @@ func getData(opts *getDataOpts, state fsm.Context) error {
 			return fmt.Errorf("get grade: %w", err)
 		}
 	}
-	if opts.subjectName != nil {
-		if err := state.Get(InputSubject.String(), opts.subjectName); err != nil {
-			return fmt.Errorf("get subject name: %w", err)
+	if opts.subject != nil {
+		if err := state.Get(InputSubject.String(), opts.subject); err != nil {
+			return fmt.Errorf("get subject: %w", err)
 		}
 	}
 	if opts.authorName != nil {

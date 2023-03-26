@@ -2,11 +2,13 @@ package main
 
 import (
 	"log"
+	"net/http"
 	"os"
 
 	"time"
 
 	"github.com/nacknime-official/gdz-ukraine/internal/controller/telegram"
+	"github.com/nacknime-official/gdz-ukraine/internal/infrastructure/gateway/homework"
 	"github.com/nacknime-official/gdz-ukraine/internal/service"
 	"github.com/redis/go-redis/v9"
 	"github.com/vitaliy-ukiru/fsm-telebot"
@@ -27,7 +29,10 @@ func main() {
 	storage := redis_storage.NewStorage(redis.NewClient(&redis.Options{Addr: "localhost:6379", Password: "", DB: 0}), redis_storage.StorageSettings{})
 	manager := fsm.NewManager(bot, nil, storage)
 
-	homeworkService := service.NewMockHomeworkService()
+	// TODO
+	httpClient := &http.Client{}
+	homeworkGateway := homework.NewHomeworkGateway(httpClient)
+	homeworkService := service.NewHomeworkService(homeworkGateway)
 	h := telegram.NewUserHandler(homeworkService)
 	h.Register(manager)
 
