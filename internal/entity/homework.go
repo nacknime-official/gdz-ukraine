@@ -1,21 +1,27 @@
 package entity
 
 type Subject struct {
+	ID   string
 	Name string
 }
 type Author struct {
+	ID   string
 	Name string
 }
 type Specification struct {
+	ID   string
 	Name string
 }
 type Year struct {
+	ID   string
 	Year int
 }
 type Topic struct {
+	ID   string
 	Name string
 }
 type Exercise struct {
+	ID   string
 	Name string
 }
 type Solution struct {
