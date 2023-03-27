@@ -191,7 +191,7 @@ func (h *userHandler) OnInputAuthor(c telebot.Context, state fsm.Context) error 
 	}
 	m.Reply(m.Split(4, btns)...)
 
-	if err := state.Update(InputAuthor.String(), author.Name); err != nil {
+	if err := state.Update(InputAuthor.String(), author); err != nil {
 		// TODO: handle
 		return err
 	}
@@ -209,11 +209,11 @@ func (h *userHandler) OnInputSpecification(c telebot.Context, state fsm.Context)
 	specification := &entity.Specification{Name: c.Message().Text}
 
 	var (
-		grade      int
-		subject    entity.Subject
-		authorName string
+		grade   int
+		subject entity.Subject
+		author  entity.Author
 	)
-	if err := getData(&getDataOpts{grade: &grade, subject: &subject, authorName: &authorName}, state); err != nil {
+	if err := getData(&getDataOpts{grade: &grade, subject: &subject, author: &author}, state); err != nil {
 		// TODO: handle
 		return err
 	}
@@ -221,7 +221,7 @@ func (h *userHandler) OnInputSpecification(c telebot.Context, state fsm.Context)
 	years, err := h.homeworkService.GetYears(entity.Opts{
 		Grade:         grade,
 		Subject:       &subject,
-		Author:        &entity.Author{Name: authorName},
+		Author:        &author,
 		Specification: specification,
 	})
 	if err != nil {
@@ -236,7 +236,7 @@ func (h *userHandler) OnInputSpecification(c telebot.Context, state fsm.Context)
 	}
 	m.Reply(m.Split(4, btns)...)
 
-	if err := state.Update(InputSpecification.String(), specification.Name); err != nil {
+	if err := state.Update(InputSpecification.String(), specification); err != nil {
 		// TODO: handle
 		return err
 	}
@@ -258,16 +258,16 @@ func (h *userHandler) OnInputYear(c telebot.Context, state fsm.Context) error {
 	year := &entity.Year{Year: rawYear}
 
 	var (
-		grade             int
-		subject           entity.Subject
-		authorName        string
-		specificationName string
+		grade         int
+		subject       entity.Subject
+		author        entity.Author
+		specification entity.Specification
 	)
-	if err := getData(&getDataOpts{grade: &grade, subject: &subject, authorName: &authorName, specificationName: &specificationName}, state); err != nil {
+	if err := getData(&getDataOpts{grade: &grade, subject: &subject, author: &author, specification: &specification}, state); err != nil {
 		// TODO: handle
 		return err
 	}
-	log.Println("data:", grade, subject, authorName, specificationName)
+	log.Println("data:", grade, subject, author, specification)
 	_ = year
 
 	return nil
@@ -276,10 +276,10 @@ func (h *userHandler) OnInputYear(c telebot.Context, state fsm.Context) error {
 // TODO: better name
 // TODO: move to other place
 type getDataOpts struct {
-	grade             *int
-	subject           *entity.Subject
-	authorName        *string
-	specificationName *string
+	grade         *int
+	subject       *entity.Subject
+	author        *entity.Author
+	specification *entity.Specification
 }
 
 // TODO: better name
@@ -297,14 +297,14 @@ func getData(opts *getDataOpts, state fsm.Context) error {
 			return fmt.Errorf("get subject: %w", err)
 		}
 	}
-	if opts.authorName != nil {
-		if err := state.Get(InputAuthor.String(), opts.authorName); err != nil {
-			return fmt.Errorf("get author name: %w", err)
+	if opts.author != nil {
+		if err := state.Get(InputAuthor.String(), opts.author); err != nil {
+			return fmt.Errorf("get author: %w", err)
 		}
 	}
-	if opts.specificationName != nil {
-		if err := state.Get(InputSpecification.String(), opts.specificationName); err != nil {
-			return fmt.Errorf("get specification name: %w", err)
+	if opts.specification != nil {
+		if err := state.Get(InputSpecification.String(), opts.specification); err != nil {
+			return fmt.Errorf("get specification: %w", err)
 		}
 	}
 	return nil
