@@ -48,13 +48,13 @@ func (hs *homeworkService) GetSubjects(opts entity.Opts) ([]*entity.Subject, err
 	return hs.gateway.GetSubjects(opts)
 }
 func (hs *homeworkService) GetAuthors(opts entity.Opts) ([]*entity.Author, error) {
-	return []*entity.Author{{"1", "1"}, {"2", "2"}, {"3", "3"}}, nil
+	return hs.gateway.GetAuthors(opts)
 }
 func (hs *homeworkService) GetSpecifications(opts entity.Opts) ([]*entity.Specification, error) {
-	return []*entity.Specification{{"1", "Handbook"}, {"2", "Notebook"}}, nil
+	return hs.gateway.GetSpecifications(opts)
 }
 func (hs *homeworkService) GetYears(opts entity.Opts) ([]*entity.Year, error) {
-	return []*entity.Year{{"1", 2012}, {"2", 2015}, {"3", 2017}, {"4", 2022}}, nil
+	return hs.gateway.GetYears(opts)
 }
 func (hs *homeworkService) GetTopics(opts entity.Opts) ([]*entity.Topic, error) {
 	return nil, nil
