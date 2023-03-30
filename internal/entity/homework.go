@@ -30,7 +30,7 @@ type Solution struct {
 
 // TODO: better name
 type Opts struct {
-	Grade         int
+	Class         int
 	Subject       *Subject
 	Author        *Author
 	Specification *Specification

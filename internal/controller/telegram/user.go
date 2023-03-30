@@ -13,7 +13,7 @@ import (
 
 var (
 	InputSG            = fsm.NewStateGroup("reg")
-	InputGrade         = InputSG.New("grade")
+	InputClass         = InputSG.New("class")
 	InputSubject       = InputSG.New("subject")
 	InputAuthor        = InputSG.New("author")
 	InputSpecification = InputSG.New("spec")
@@ -39,7 +39,7 @@ func NewUserHandler(homeworkService HomeworkService) *userHandler {
 
 func (h *userHandler) Register(manager *fsm.Manager) {
 	manager.Bind("/start", fsm.AnyState, h.OnStart)
-	manager.Bind(telebot.OnText, InputGrade, h.OnInputGrade)
+	manager.Bind(telebot.OnText, InputClass, h.OnInputClass)
 	manager.Bind(telebot.OnText, InputSubject, h.OnInputSubject)
 	manager.Bind(telebot.OnText, InputAuthor, h.OnInputAuthor)
 	manager.Bind(telebot.OnText, InputSpecification, h.OnInputSpecification)
@@ -69,23 +69,23 @@ func (h *userHandler) OnStart(c telebot.Context, state fsm.Context) error {
 		telebot.Btn{Text: "11"},
 	))
 
-	if err := state.Set(InputGrade); err != nil {
+	if err := state.Set(InputClass); err != nil {
 		// TODO: handle
 		return err
 	}
-	return c.Send("Choice the grade", markup)
+	return c.Send("Choice the class", markup)
 }
 
-func (h *userHandler) OnInputGrade(c telebot.Context, state fsm.Context) error {
-	log.Println("Grade:", c.Message().Text)
+func (h *userHandler) OnInputClass(c telebot.Context, state fsm.Context) error {
+	log.Println("Class:", c.Message().Text)
 
-	grade, err := strconv.Atoi(c.Message().Text)
+	class, err := strconv.Atoi(c.Message().Text)
 	if err != nil {
 		return c.Send("You've put not a number, try again")
 	}
 	// TODO: input should be valid (number from 1 to 11)
 
-	subjects, err := h.homeworkService.GetSubjects(entity.Opts{Grade: grade})
+	subjects, err := h.homeworkService.GetSubjects(entity.Opts{Class: class})
 	if err != nil {
 		return err
 	}
@@ -102,7 +102,7 @@ func (h *userHandler) OnInputGrade(c telebot.Context, state fsm.Context) error {
 		// TODO: handle
 		return err
 	}
-	if err := state.Update(InputGrade.String(), grade); err != nil {
+	if err := state.Update(InputClass.String(), class); err != nil {
 		// TODO: handle
 		return err
 	}
@@ -112,15 +112,15 @@ func (h *userHandler) OnInputGrade(c telebot.Context, state fsm.Context) error {
 func (h *userHandler) OnInputSubject(c telebot.Context, state fsm.Context) error {
 	log.Println("Subject:", c.Message().Text)
 
-	var grade int
-	if err := getData(&getDataOpts{grade: &grade}, state); err != nil {
+	var class int
+	if err := getData(&getDataOpts{class: &class}, state); err != nil {
 		// TODO: handle
 		return err
 	}
 
 	// check the input
 	// TODO: refactor (check note 2 in "problems_notes.md")
-	subjects, err := h.homeworkService.GetSubjects(entity.Opts{Grade: grade})
+	subjects, err := h.homeworkService.GetSubjects(entity.Opts{Class: class})
 	if err != nil {
 		// TODO: handle
 		return err
@@ -132,7 +132,7 @@ func (h *userHandler) OnInputSubject(c telebot.Context, state fsm.Context) error
 	}
 	subject := subjects[idx]
 
-	authors, err := h.homeworkService.GetAuthors(entity.Opts{Grade: grade, Subject: subject})
+	authors, err := h.homeworkService.GetAuthors(entity.Opts{Class: class, Subject: subject})
 	if err != nil {
 		// TODO: handle
 		return err
@@ -165,16 +165,16 @@ func (h *userHandler) OnInputAuthor(c telebot.Context, state fsm.Context) error 
 	author := &entity.Author{Name: c.Message().Text}
 
 	var (
-		grade   int
+		class   int
 		subject entity.Subject
 	)
-	if err := getData(&getDataOpts{grade: &grade, subject: &subject}, state); err != nil {
+	if err := getData(&getDataOpts{class: &class, subject: &subject}, state); err != nil {
 		// TODO: handle
 		return err
 	}
 
 	specifications, err := h.homeworkService.GetSpecifications(entity.Opts{
-		Grade:   grade,
+		Class:   class,
 		Subject: &subject,
 		Author:  author,
 	})
@@ -209,17 +209,17 @@ func (h *userHandler) OnInputSpecification(c telebot.Context, state fsm.Context)
 	specification := &entity.Specification{Name: c.Message().Text}
 
 	var (
-		grade   int
+		class   int
 		subject entity.Subject
 		author  entity.Author
 	)
-	if err := getData(&getDataOpts{grade: &grade, subject: &subject, author: &author}, state); err != nil {
+	if err := getData(&getDataOpts{class: &class, subject: &subject, author: &author}, state); err != nil {
 		// TODO: handle
 		return err
 	}
 
 	years, err := h.homeworkService.GetYears(entity.Opts{
-		Grade:         grade,
+		Class:         class,
 		Subject:       &subject,
 		Author:        &author,
 		Specification: specification,
@@ -258,16 +258,16 @@ func (h *userHandler) OnInputYear(c telebot.Context, state fsm.Context) error {
 	year := &entity.Year{Year: rawYear}
 
 	var (
-		grade         int
+		class         int
 		subject       entity.Subject
 		author        entity.Author
 		specification entity.Specification
 	)
-	if err := getData(&getDataOpts{grade: &grade, subject: &subject, author: &author, specification: &specification}, state); err != nil {
+	if err := getData(&getDataOpts{class: &class, subject: &subject, author: &author, specification: &specification}, state); err != nil {
 		// TODO: handle
 		return err
 	}
-	log.Println("data:", grade, subject, author, specification)
+	log.Println("data:", class, subject, author, specification)
 	_ = year
 
 	return nil
@@ -276,7 +276,7 @@ func (h *userHandler) OnInputYear(c telebot.Context, state fsm.Context) error {
 // TODO: better name
 // TODO: move to other place
 type getDataOpts struct {
-	grade         *int
+	class         *int
 	subject       *entity.Subject
 	author        *entity.Author
 	specification *entity.Specification
@@ -287,9 +287,9 @@ type getDataOpts struct {
 // TODO: maybe we can avoid hardcoding the keys in `Get` calls to e.g. make it testable?
 // gets the data and saves it to the passed pointers
 func getData(opts *getDataOpts, state fsm.Context) error {
-	if opts.grade != nil {
-		if err := state.Get(InputGrade.String(), opts.grade); err != nil {
-			return fmt.Errorf("get grade: %w", err)
+	if opts.class != nil {
+		if err := state.Get(InputClass.String(), opts.class); err != nil {
+			return fmt.Errorf("get class: %w", err)
 		}
 	}
 	if opts.subject != nil {
