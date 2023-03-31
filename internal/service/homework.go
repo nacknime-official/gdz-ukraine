@@ -1,6 +1,9 @@
 package service
 
-import "github.com/nacknime-official/gdz-ukraine/internal/entity"
+import (
+	"github.com/nacknime-official/gdz-ukraine/internal/entity"
+	"golang.org/x/exp/slices"
+)
 
 type mockHomeworkService struct{}
 
@@ -47,15 +50,71 @@ func NewHomeworkService(homeworkGateway HomeworkGateway) *homeworkService {
 func (hs *homeworkService) GetSubjects(opts entity.Opts) ([]*entity.Subject, error) {
 	return hs.gateway.GetSubjects(opts)
 }
+func (hs *homeworkService) GetSubjectByName(opts entity.Opts, name string) (*entity.Subject, error) {
+	subjects, err := hs.GetSubjects(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	idx := slices.IndexFunc(subjects, func(s *entity.Subject) bool { return s.Name == name })
+	if idx == -1 {
+		return nil, entity.ErrNotFound
+	}
+
+	return subjects[idx], nil
+}
+
 func (hs *homeworkService) GetAuthors(opts entity.Opts) ([]*entity.Author, error) {
 	return hs.gateway.GetAuthors(opts)
 }
+func (hs *homeworkService) GetAuthorByName(opts entity.Opts, name string) (*entity.Author, error) {
+	authors, err := hs.GetAuthors(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	idx := slices.IndexFunc(authors, func(s *entity.Author) bool { return s.Name == name })
+	if idx == -1 {
+		return nil, entity.ErrNotFound
+	}
+
+	return authors[idx], nil
+}
+
 func (hs *homeworkService) GetSpecifications(opts entity.Opts) ([]*entity.Specification, error) {
 	return hs.gateway.GetSpecifications(opts)
 }
+func (hs *homeworkService) GetSpecificationByName(opts entity.Opts, name string) (*entity.Specification, error) {
+	specifications, err := hs.GetSpecifications(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	idx := slices.IndexFunc(specifications, func(s *entity.Specification) bool { return s.Name == name })
+	if idx == -1 {
+		return nil, entity.ErrNotFound
+	}
+
+	return specifications[idx], nil
+}
+
 func (hs *homeworkService) GetYears(opts entity.Opts) ([]*entity.Year, error) {
 	return hs.gateway.GetYears(opts)
 }
+func (hs *homeworkService) GetYearByValue(opts entity.Opts, year int) (*entity.Year, error) {
+	years, err := hs.GetYears(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	idx := slices.IndexFunc(years, func(s *entity.Year) bool { return s.Year == year })
+	if idx == -1 {
+		return nil, entity.ErrNotFound
+	}
+
+	return years[idx], nil
+}
+
 func (hs *homeworkService) GetTopics(opts entity.Opts) ([]*entity.Topic, error) {
 	return nil, nil
 }

@@ -1,13 +1,13 @@
 package telegram
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"strconv"
 
 	"github.com/nacknime-official/gdz-ukraine/internal/entity"
 	"github.com/vitaliy-ukiru/fsm-telebot"
-	"golang.org/x/exp/slices"
 	"gopkg.in/telebot.v3"
 )
 
@@ -23,9 +23,17 @@ var (
 
 type HomeworkService interface {
 	GetSubjects(opts entity.Opts) ([]*entity.Subject, error)
+	GetSubjectByName(opts entity.Opts, name string) (*entity.Subject, error)
+
 	GetAuthors(opts entity.Opts) ([]*entity.Author, error)
+	GetAuthorByName(opts entity.Opts, name string) (*entity.Author, error)
+
 	GetSpecifications(opts entity.Opts) ([]*entity.Specification, error)
+	GetSpecificationByName(opts entity.Opts, name string) (*entity.Specification, error)
+
 	GetYears(opts entity.Opts) ([]*entity.Year, error)
+	GetYearByValue(opts entity.Opts, year int) (*entity.Year, error)
+
 	GetTopics(opts entity.Opts) ([]*entity.Topic, error)
 	GetExercises(opts entity.Opts) ([]*entity.Exercise, error)
 }
@@ -121,16 +129,14 @@ func (h *userHandler) OnInputSubject(c telebot.Context, state fsm.Context) error
 
 	// check the input
 	// TODO: refactor (check note 2 in "problems_notes.md")
-	subjects, err := h.homeworkService.GetSubjects(entity.Opts{Class: class})
+	subject, err := h.homeworkService.GetSubjectByName(entity.Opts{Class: class}, c.Message().Text)
 	if err != nil {
+		if errors.Is(err, entity.ErrNotFound) {
+			return c.Send("Click on one of the buttons!")
+		}
 		// TODO: handle
 		return err
 	}
-	idx := slices.IndexFunc(subjects, func(s *entity.Subject) bool { return s.Name == c.Message().Text })
-	if idx < 0 {
-		return c.Send("Click on one of the buttons!")
-	}
-	subject := subjects[idx]
 
 	authors, err := h.homeworkService.GetAuthors(entity.Opts{Class: class, Subject: subject})
 	if err != nil {
@@ -161,9 +167,6 @@ func (h *userHandler) OnInputSubject(c telebot.Context, state fsm.Context) error
 func (h *userHandler) OnInputAuthor(c telebot.Context, state fsm.Context) error {
 	log.Println("Author:", c.Message().Text)
 
-	// TODO: input should be valid
-	author := &entity.Author{Name: c.Message().Text}
-
 	var (
 		class   int
 		subject entity.Subject
@@ -172,12 +175,21 @@ func (h *userHandler) OnInputAuthor(c telebot.Context, state fsm.Context) error 
 		// TODO: handle
 		return err
 	}
+	opts := entity.Opts{Class: class, Subject: &subject}
 
-	specifications, err := h.homeworkService.GetSpecifications(entity.Opts{
-		Class:   class,
-		Subject: &subject,
-		Author:  author,
-	})
+	// check the input
+	// TODO: refactor (check note 2 in "problems_notes.md")
+	author, err := h.homeworkService.GetAuthorByName(opts, c.Message().Text)
+	if err != nil {
+		if errors.Is(err, entity.ErrNotFound) {
+			return c.Send("Click on one of the buttons!")
+		}
+		// TODO: handle
+		return err
+	}
+	opts.Author = author
+
+	specifications, err := h.homeworkService.GetSpecifications(opts)
 	if err != nil {
 		// TODO: handle
 		return err
@@ -205,9 +217,6 @@ func (h *userHandler) OnInputAuthor(c telebot.Context, state fsm.Context) error 
 func (h *userHandler) OnInputSpecification(c telebot.Context, state fsm.Context) error {
 	log.Println("Specification:", c.Message().Text)
 
-	// TODO: input should be valid
-	specification := &entity.Specification{Name: c.Message().Text}
-
 	var (
 		class   int
 		subject entity.Subject
@@ -217,13 +226,21 @@ func (h *userHandler) OnInputSpecification(c telebot.Context, state fsm.Context)
 		// TODO: handle
 		return err
 	}
+	opts := entity.Opts{Class: class, Subject: &subject, Author: &author}
 
-	years, err := h.homeworkService.GetYears(entity.Opts{
-		Class:         class,
-		Subject:       &subject,
-		Author:        &author,
-		Specification: specification,
-	})
+	// check the input
+	// TODO: refactor (check note 2 in "problems_notes.md")
+	specification, err := h.homeworkService.GetSpecificationByName(opts, c.Message().Text)
+	if err != nil {
+		if errors.Is(err, entity.ErrNotFound) {
+			return c.Send("Click on one of the buttons!")
+		}
+		// TODO: handle
+		return err
+	}
+	opts.Specification = specification
+
+	years, err := h.homeworkService.GetYears(opts)
 	if err != nil {
 		// TODO: handle
 		return err
@@ -265,20 +282,18 @@ func (h *userHandler) OnInputYear(c telebot.Context, state fsm.Context) error {
 		// TODO: handle
 		return err
 	}
-
 	opts := entity.Opts{Class: class, Subject: &subject, Author: &author, Specification: &specification}
-	years, err := h.homeworkService.GetYears(opts)
+
+	year, err := h.homeworkService.GetYearByValue(opts, rawYear)
 	if err != nil {
+		if errors.Is(err, entity.ErrNotFound) {
+			return c.Send("Click on one of the buttons!")
+		}
 		// TODO: handle
 		return err
 	}
-	idx := slices.IndexFunc(years, func(s *entity.Year) bool { return s.Year == rawYear })
-	if idx < 0 {
-		return c.Send("Click on one of the buttons!")
-	}
-	year := years[idx]
-
 	opts.Year = year
+
 	topics, err := h.homeworkService.GetTopics(opts)
 	if err != nil {
 		// TODO: handle
