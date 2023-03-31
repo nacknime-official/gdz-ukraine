@@ -18,6 +18,7 @@ var (
 	InputAuthor        = InputSG.New("author")
 	InputSpecification = InputSG.New("spec")
 	InputYear          = InputSG.New("year")
+	InputTopic         = InputSG.New("topic")
 )
 
 type HomeworkService interface {
@@ -124,7 +125,6 @@ func (h *userHandler) OnInputSubject(c telebot.Context, state fsm.Context) error
 	if err != nil {
 		// TODO: handle
 		return err
-
 	}
 	idx := slices.IndexFunc(subjects, func(s *entity.Subject) bool { return s.Name == c.Message().Text })
 	if idx < 0 {
@@ -250,12 +250,10 @@ func (h *userHandler) OnInputSpecification(c telebot.Context, state fsm.Context)
 func (h *userHandler) OnInputYear(c telebot.Context, state fsm.Context) error {
 	log.Println("Year:", c.Message().Text)
 
-	// TODO: input should be valid
 	rawYear, err := strconv.Atoi(c.Message().Text)
 	if err != nil {
 		return c.Send("You've put not a number, try again")
 	}
-	year := &entity.Year{Year: rawYear}
 
 	var (
 		class         int
@@ -267,10 +265,43 @@ func (h *userHandler) OnInputYear(c telebot.Context, state fsm.Context) error {
 		// TODO: handle
 		return err
 	}
-	log.Println("data:", class, subject, author, specification)
-	_ = year
 
-	return nil
+	opts := entity.Opts{Class: class, Subject: &subject, Author: &author, Specification: &specification}
+	years, err := h.homeworkService.GetYears(opts)
+	if err != nil {
+		// TODO: handle
+		return err
+	}
+	idx := slices.IndexFunc(years, func(s *entity.Year) bool { return s.Year == rawYear })
+	if idx < 0 {
+		return c.Send("Click on one of the buttons!")
+	}
+	year := years[idx]
+
+	opts.Year = year
+	topics, err := h.homeworkService.GetTopics(opts)
+	if err != nil {
+		// TODO: handle
+		return err
+	}
+
+	// TODO: create it not here
+	m := &telebot.ReplyMarkup{ResizeKeyboard: true}
+	var btns []telebot.Btn
+	for _, topic := range topics {
+		btns = append(btns, telebot.Btn{Text: topic.Name})
+	}
+	m.Reply(m.Split(4, btns)...)
+
+	if err := state.Update(InputYear.String(), year); err != nil {
+		// TODO: handle
+		return err
+	}
+	if err := state.Set(InputTopic); err != nil {
+		// TODO: handle
+		return err
+	}
+	return c.Send("Choose the topic", m)
 }
 
 // TODO: better name

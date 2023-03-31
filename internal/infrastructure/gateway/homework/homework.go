@@ -140,7 +140,9 @@ func (hg *homeworkGateway) GetYears(opts entity.Opts) ([]*entity.Year, error) {
 		if err != nil {
 			return nil, fmt.Errorf("convert year to int: %s", err)
 		}
-		years = append(years, &entity.Year{Year: convertedYear})
+		// save subject entity ID to the last step that require subject entities (the "year" step)
+		// TODO: maybe there's better way to save subject entity ID
+		years = append(years, &entity.Year{ID: e.ID, Year: convertedYear})
 	}
 
 	return years, nil
