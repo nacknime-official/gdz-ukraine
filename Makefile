@@ -22,3 +22,28 @@ run: ### run
 test: ### run test
 	go test -v -cover -race ./...
 .PHONY: test
+
+gen: ### go generate
+	go generate ./...
+.PHONY: gen
+
+migrate-create:  ### create new migration
+	migrate create -ext sql -dir migrations -seq -digits 4 'migrate_name'
+.PHONY: migrate-create
+
+migrate-up: ### migration up
+	migrate -path migrations -database '$(POSTGRES_URL)' up
+.PHONY: migrate-up
+
+migrate-clean: ### migration clean database
+	migrate -path migrations -database '$(POSTGRES_URL)' drop -f
+.PHONY: migrate-up
+
+migrate-version: ### migration version
+	migrate -path migrations -database '$(POSTGRES_URL)' version
+.PHONY: migrate-up
+
+bin-deps: ### install binary dependencies (gen tools, migrator etc)
+	GOBIN=$(BINDIR) go install -tags 'pgx' github.com/golang-migrate/migrate/v4/cmd/migrate@v4.15.2
+	GOBIN=$(BINDIR) go install github.com/kyleconroy/sqlc/cmd/sqlc@v1.17.2
+
