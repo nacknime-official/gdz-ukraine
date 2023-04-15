@@ -50,3 +50,10 @@ But I found out another way to do that: after the user chosen the entity (a subj
 Anyway I get the same data in the next handler again to check that user "clicked on one of the buttons" and didn't input something else. Yes, I began to like this variant more after realising this fact.
 
 But I should recheck if the Vshkole API has IDs for everything I need.
+
+### 4. Amount of buttons can be more than 300
+I've found out that the maximum amount of buttons for a reply keyboard is **300**.
+
+And there are some steps that has >=300 choices.
+
+So, it seems we need to implement pagination if the result from gateway is >=300.
