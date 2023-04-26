@@ -35,8 +35,7 @@ type HomeworkGateway interface {
 	GetAuthors(opts entity.Opts) ([]*entity.Author, error)
 	GetSpecifications(opts entity.Opts) ([]*entity.Specification, error)
 	GetYears(opts entity.Opts) ([]*entity.Year, error)
-	GetTopics(opts entity.Opts) ([]*entity.Topic, error)
-	GetExercises(opts entity.Opts) ([]*entity.Exercise, error)
+	GetTopicsOrExercises(opts entity.Opts) ([]*entity.TopicOrExercise, error)
 }
 
 type homeworkService struct {
@@ -115,9 +114,27 @@ func (hs *homeworkService) GetYearByValue(opts entity.Opts, year int) (*entity.Y
 	return years[idx], nil
 }
 
-func (hs *homeworkService) GetTopics(opts entity.Opts) ([]*entity.Topic, error) {
-	return nil, nil
+func (hs *homeworkService) GetTopicsOrExercises(opts entity.Opts) ([]*entity.TopicOrExercise, error) {
+	return hs.gateway.GetTopicsOrExercises(opts)
 }
-func (hs *homeworkService) GetExercises(opts entity.Opts) ([]*entity.Exercise, error) {
-	return nil, nil
+func (hs *homeworkService) GetTopicOrExerciseByName(opts entity.Opts, name string) (*entity.TopicOrExercise, error) {
+	topicsOrExercises, err := hs.GetTopicsOrExercises(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	idx := slices.IndexFunc(topicsOrExercises, func(s *entity.TopicOrExercise) bool {
+		if s.Topic != nil {
+			return s.Topic.Name == name
+		}
+		if s.Exercise != nil {
+			return s.Exercise.Name == name
+		}
+		return false
+	})
+	if idx == -1 {
+		return nil, entity.ErrNotFound
+	}
+
+	return topicsOrExercises[idx], nil
 }

@@ -24,6 +24,10 @@ type Exercise struct {
 	ID   string
 	Name string
 }
+type TopicOrExercise struct {
+	Topic    *Topic
+	Exercise *Exercise
+}
 type Solution struct {
 	// TODO
 }

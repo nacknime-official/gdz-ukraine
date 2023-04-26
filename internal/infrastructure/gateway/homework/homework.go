@@ -13,7 +13,7 @@ import (
 const (
 	apiSubjectsUrl        = "https://vshkole.com/api/get_class_subjects?new-app=1&class_id=%d&type=ab"
 	apiSubjectEntitiesUrl = "https://vshkole.com/api/get_subject_class_entities?new-app=1&class_id=%d&subject_id=%s&type=ab"
-	apiEntityUrl          = "https://vshkole.com/api/get_entity_by_id?new-app=1&id=%d&type=ab"
+	apiEntityUrl          = "https://vshkole.com/api/get_entity_by_id?new-app=1&id=%s&type=ab"
 )
 
 var classToID = map[int]int{
@@ -148,6 +148,57 @@ func (hg *homeworkGateway) GetYears(opts entity.Opts) ([]*entity.Year, error) {
 	return years, nil
 }
 
+type Entity struct {
+	Contents []*EntityContent `json:"contents"`
+}
+type EntityContent struct {
+	ID        string           `json:"id"`
+	Name      string           `json:"name"`
+	Level     string           `json:"level"`
+	Children  []*EntityContent `json:"__children"`
+	ImageURLs []string         `json:"image_urls"`
+	// Text string ?
+}
+
+// TODO: make method cachable
+func (hg *homeworkGateway) getEntityContents(opts entity.Opts) ([]*EntityContent, error) {
+	var respData *Entity
+	err := hg.makeRequest(context.Background(), fmt.Sprintf(apiEntityUrl, opts.Year.ID), &respData)
+	if err != nil {
+		return nil, err
+	}
+
+	return respData.Contents, nil
+}
+
+func (hg *homeworkGateway) GetTopicsOrExercises(opts entity.Opts) ([]*entity.TopicOrExercise, error) {
+	entityContents, err := hg.getEntityContents(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	actualLevel := len(opts.Topics)
+	for i := 0; i < actualLevel; i++ {
+		for _, c := range entityContents {
+			if c.ID != opts.Topics[i].ID {
+				continue
+			}
+			entityContents = c.Children
+		}
+	}
+
+	var res []*entity.TopicOrExercise
+	for _, c := range entityContents {
+		if len(c.Children) == 0 {
+			res = append(res, &entity.TopicOrExercise{Exercise: &entity.Exercise{ID: c.ID, Name: c.Name}})
+		} else {
+			res = append(res, &entity.TopicOrExercise{Topic: &entity.Topic{ID: c.ID, Name: c.Name}})
+		}
+	}
+
+	return res, nil
+}
+
 func (hg *homeworkGateway) makeRequest(ctx context.Context, url string, decodeTo any) error {
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
@@ -164,14 +215,4 @@ func (hg *homeworkGateway) makeRequest(ctx context.Context, url string, decodeTo
 		return fmt.Errorf("json decode response: %w", err)
 	}
 	return nil
-}
-
-// TODO
-func (hg *homeworkGateway) GetTopics(opts entity.Opts) ([]*entity.Topic, error) {
-	return nil, nil
-}
-
-// TODO
-func (hg *homeworkGateway) GetExercises(opts entity.Opts) ([]*entity.Exercise, error) {
-	return nil, nil
 }

@@ -18,7 +18,8 @@ var (
 	InputAuthor        = InputSG.New("author")
 	InputSpecification = InputSG.New("spec")
 	InputYear          = InputSG.New("year")
-	InputTopic         = InputSG.New("topic")
+	InputTopics        = InputSG.New("topics")
+	InputExercise      = InputSG.New("exercise")
 )
 
 type HomeworkService interface {
@@ -34,8 +35,8 @@ type HomeworkService interface {
 	GetYears(opts entity.Opts) ([]*entity.Year, error)
 	GetYearByValue(opts entity.Opts, year int) (*entity.Year, error)
 
-	GetTopics(opts entity.Opts) ([]*entity.Topic, error)
-	GetExercises(opts entity.Opts) ([]*entity.Exercise, error)
+	GetTopicsOrExercises(opts entity.Opts) ([]*entity.TopicOrExercise, error)
+	GetTopicOrExerciseByName(opts entity.Opts, name string) (*entity.TopicOrExercise, error)
 }
 
 type userHandler struct {
@@ -53,6 +54,7 @@ func (h *userHandler) Register(manager *fsm.Manager) {
 	manager.Bind(telebot.OnText, InputAuthor, h.OnInputAuthor)
 	manager.Bind(telebot.OnText, InputSpecification, h.OnInputSpecification)
 	manager.Bind(telebot.OnText, InputYear, h.OnInputYear)
+	manager.Bind(telebot.OnText, InputTopics, h.OnInputTopic)
 }
 
 func (h *userHandler) OnStart(c telebot.Context, state fsm.Context) error {
@@ -294,7 +296,7 @@ func (h *userHandler) OnInputYear(c telebot.Context, state fsm.Context) error {
 	}
 	opts.Year = year
 
-	topics, err := h.homeworkService.GetTopics(opts)
+	topicsOrExercises, err := h.homeworkService.GetTopicsOrExercises(opts)
 	if err != nil {
 		// TODO: handle
 		return err
@@ -303,8 +305,15 @@ func (h *userHandler) OnInputYear(c telebot.Context, state fsm.Context) error {
 	// TODO: create it not here
 	m := &telebot.ReplyMarkup{ResizeKeyboard: true}
 	var btns []telebot.Btn
-	for _, topic := range topics {
-		btns = append(btns, telebot.Btn{Text: topic.Name})
+	for _, topicOrExercise := range topicsOrExercises {
+		var text string
+		if topicOrExercise.Topic != nil {
+			text = topicOrExercise.Topic.Name
+		}
+		if topicOrExercise.Exercise != nil {
+			text = topicOrExercise.Exercise.Name
+		}
+		btns = append(btns, telebot.Btn{Text: text})
 	}
 	m.Reply(m.Split(4, btns)...)
 
@@ -312,11 +321,89 @@ func (h *userHandler) OnInputYear(c telebot.Context, state fsm.Context) error {
 		// TODO: handle
 		return err
 	}
-	if err := state.Set(InputTopic); err != nil {
+	if err := state.Set(InputTopics); err != nil {
 		// TODO: handle
 		return err
 	}
 	return c.Send("Choose the topic", m)
+}
+
+func (h *userHandler) OnInputTopic(c telebot.Context, state fsm.Context) error {
+	log.Println("Topic:", c.Message().Text)
+
+	var (
+		class         int
+		subject       entity.Subject
+		author        entity.Author
+		specification entity.Specification
+		year          entity.Year
+		topics        []*entity.Topic
+	)
+	if err := getData(&getDataOpts{class: &class, subject: &subject, author: &author, specification: &specification, year: &year}, state); err != nil {
+		// TODO: handle
+		return err
+	}
+	// handle case when topic has not set yet
+	if err := getData(&getDataOpts{topics: &topics}, state); err != nil {
+		if !errors.Is(err, fsm.ErrNotFound) {
+			// TODO: handle
+			return err
+		}
+	}
+	opts := entity.Opts{Class: class, Subject: &subject, Author: &author, Specification: &specification, Year: &year, Topics: topics}
+
+	// check the input
+	topicOrExercise, err := h.homeworkService.GetTopicOrExerciseByName(opts, c.Message().Text)
+	if err != nil {
+		if errors.Is(err, entity.ErrNotFound) {
+			return c.Send("Click on one of the buttons!")
+		}
+		// TODO: handle
+		return err
+	}
+	if topicOrExercise.Exercise != nil {
+		// it's exercise, so we need to get the solution
+		// but firstly save the exercise to the state
+		// but don't sure if it's needed
+		if err := state.Update(InputExercise.String(), topicOrExercise.Exercise); err != nil {
+			// TODO: handle
+			return err
+		}
+		// TODO: send solution
+		return nil
+	}
+	// it's topic, so we need to get the next topics
+	opts.Topics = append(opts.Topics, topicOrExercise.Topic)
+
+	nextTopics, err := h.homeworkService.GetTopicsOrExercises(opts)
+	if err != nil {
+		// TODO: handle
+		return err
+	}
+	if len(nextTopics) != 0 {
+		// TODO: create it not here
+		m := &telebot.ReplyMarkup{ResizeKeyboard: true}
+		var btns []telebot.Btn
+		for _, topicOrExercise := range nextTopics {
+			var text string
+			if topicOrExercise.Topic != nil {
+				text = topicOrExercise.Topic.Name
+			}
+			if topicOrExercise.Exercise != nil {
+				text = topicOrExercise.Exercise.Name
+			}
+			btns = append(btns, telebot.Btn{Text: text})
+		}
+		m.Reply(m.Split(4, btns)...)
+
+		if err := state.Update(InputTopics.String(), opts.Topics); err != nil {
+			// TODO: handle
+			return err
+		}
+		return c.Send("Choose the topic", m)
+	} else {
+		return c.Send("weird")
+	}
 }
 
 // TODO: better name
@@ -326,6 +413,9 @@ type getDataOpts struct {
 	subject       *entity.Subject
 	author        *entity.Author
 	specification *entity.Specification
+	year          *entity.Year
+	topics        *[]*entity.Topic
+	exercise      *entity.Exercise
 }
 
 // TODO: better name
@@ -351,6 +441,21 @@ func getData(opts *getDataOpts, state fsm.Context) error {
 	if opts.specification != nil {
 		if err := state.Get(InputSpecification.String(), opts.specification); err != nil {
 			return fmt.Errorf("get specification: %w", err)
+		}
+	}
+	if opts.year != nil {
+		if err := state.Get(InputYear.String(), opts.year); err != nil {
+			return fmt.Errorf("get year: %w", err)
+		}
+	}
+	if opts.topics != nil {
+		if err := state.Get(InputTopics.String(), opts.topics); err != nil {
+			return fmt.Errorf("get topics: %w", err)
+		}
+	}
+	if opts.exercise != nil {
+		if err := state.Get(InputExercise.String(), opts.exercise); err != nil {
+			return fmt.Errorf("get exercise: %w", err)
 		}
 	}
 	return nil
