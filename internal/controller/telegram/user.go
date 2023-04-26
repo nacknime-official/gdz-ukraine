@@ -6,6 +6,7 @@ import (
 	"log"
 	"strconv"
 
+	"github.com/nacknime-official/gdz-ukraine/internal/controller/telegram/markup"
 	"github.com/nacknime-official/gdz-ukraine/internal/entity"
 	"github.com/vitaliy-ukiru/fsm-telebot"
 	"gopkg.in/telebot.v3"
@@ -63,28 +64,11 @@ func (h *userHandler) OnStart(c telebot.Context, state fsm.Context) error {
 		return err
 	}
 
-	// TODO: create it not here
-	markup := &telebot.ReplyMarkup{}
-	markup.Reply(markup.Row(
-		telebot.Btn{Text: "Back"}, // TODO
-		telebot.Btn{Text: "1"},
-		telebot.Btn{Text: "2"},
-		telebot.Btn{Text: "3"},
-		telebot.Btn{Text: "4"},
-		telebot.Btn{Text: "5"},
-		telebot.Btn{Text: "6"},
-		telebot.Btn{Text: "7"},
-		telebot.Btn{Text: "8"},
-		telebot.Btn{Text: "9"},
-		telebot.Btn{Text: "10"},
-		telebot.Btn{Text: "11"},
-	))
-
 	if err := state.Set(InputClass); err != nil {
 		// TODO: handle
 		return err
 	}
-	return c.Send("Choice the class", markup)
+	return c.Send("Choice the class", markup.Classes())
 }
 
 func (h *userHandler) OnInputClass(c telebot.Context, state fsm.Context) error {
@@ -100,14 +84,7 @@ func (h *userHandler) OnInputClass(c telebot.Context, state fsm.Context) error {
 	if err != nil {
 		return err
 	}
-
-	// TODO: create it not here
-	m := &telebot.ReplyMarkup{ResizeKeyboard: true}
-	var btns []telebot.Btn
-	for _, subject := range subjects {
-		btns = append(btns, telebot.Btn{Text: subject.Name})
-	}
-	m.Reply(m.Split(4, btns)...)
+	m := markup.Subjects(subjects)
 
 	if err := state.Set(InputSubject); err != nil {
 		// TODO: handle
@@ -146,14 +123,7 @@ func (h *userHandler) OnInputSubject(c telebot.Context, state fsm.Context) error
 		return err
 
 	}
-
-	// TODO: create it not here
-	m := &telebot.ReplyMarkup{ResizeKeyboard: true}
-	var btns []telebot.Btn
-	for _, author := range authors {
-		btns = append(btns, telebot.Btn{Text: author.Name})
-	}
-	m.Reply(m.Split(4, btns)...)
+	m := markup.Authors(authors)
 
 	if err := state.Update(InputSubject.String(), subject); err != nil {
 		// TODO: handle
@@ -196,14 +166,7 @@ func (h *userHandler) OnInputAuthor(c telebot.Context, state fsm.Context) error 
 		// TODO: handle
 		return err
 	}
-
-	// TODO: create it not here
-	m := &telebot.ReplyMarkup{ResizeKeyboard: true}
-	var btns []telebot.Btn
-	for _, spec := range specifications {
-		btns = append(btns, telebot.Btn{Text: spec.Name})
-	}
-	m.Reply(m.Split(4, btns)...)
+	m := markup.Specifications(specifications)
 
 	if err := state.Update(InputAuthor.String(), author); err != nil {
 		// TODO: handle
@@ -247,13 +210,7 @@ func (h *userHandler) OnInputSpecification(c telebot.Context, state fsm.Context)
 		// TODO: handle
 		return err
 	}
-
-	m := &telebot.ReplyMarkup{ResizeKeyboard: true}
-	var btns []telebot.Btn
-	for _, year := range years {
-		btns = append(btns, telebot.Btn{Text: strconv.Itoa(year.Year)})
-	}
-	m.Reply(m.Split(4, btns)...)
+	m := markup.Years(years)
 
 	if err := state.Update(InputSpecification.String(), specification); err != nil {
 		// TODO: handle
@@ -302,20 +259,7 @@ func (h *userHandler) OnInputYear(c telebot.Context, state fsm.Context) error {
 		return err
 	}
 
-	// TODO: create it not here
-	m := &telebot.ReplyMarkup{ResizeKeyboard: true}
-	var btns []telebot.Btn
-	for _, topicOrExercise := range topicsOrExercises {
-		var text string
-		if topicOrExercise.Topic != nil {
-			text = topicOrExercise.Topic.Name
-		}
-		if topicOrExercise.Exercise != nil {
-			text = topicOrExercise.Exercise.Name
-		}
-		btns = append(btns, telebot.Btn{Text: text})
-	}
-	m.Reply(m.Split(4, btns)...)
+	m := markup.TopicsOrExercises(topicsOrExercises)
 
 	if err := state.Update(InputYear.String(), year); err != nil {
 		// TODO: handle
@@ -381,21 +325,7 @@ func (h *userHandler) OnInputTopic(c telebot.Context, state fsm.Context) error {
 		return err
 	}
 	if len(nextTopics) != 0 {
-		// TODO: create it not here
-		m := &telebot.ReplyMarkup{ResizeKeyboard: true}
-		var btns []telebot.Btn
-		for _, topicOrExercise := range nextTopics {
-			var text string
-			if topicOrExercise.Topic != nil {
-				text = topicOrExercise.Topic.Name
-			}
-			if topicOrExercise.Exercise != nil {
-				text = topicOrExercise.Exercise.Name
-			}
-			btns = append(btns, telebot.Btn{Text: text})
-		}
-		m.Reply(m.Split(4, btns)...)
-
+		m := markup.TopicsOrExercises(nextTopics)
 		if err := state.Update(InputTopics.String(), opts.Topics); err != nil {
 			// TODO: handle
 			return err
